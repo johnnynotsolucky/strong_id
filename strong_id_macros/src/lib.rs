@@ -297,10 +297,12 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 /// Validate `&'static str` prefixes at compile-time
 ///
 /// ```
-/// use strong_id::prefix;
-///
+/// # fn main() {
+/// # use strong_id_macros::prefix;
 /// prefix!("user");
 /// prefix!("user_account");
+/// # }
+///
 ///
 /// // prefix!("USER");
 /// ```

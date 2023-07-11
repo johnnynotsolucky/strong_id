@@ -172,8 +172,7 @@ macro_rules! strong_id {
         $(#[$outer:meta])*
         $vis:vis struct $t:ident($inner:ty)
     ) => {
-        $crate::strong_id! {
-            @@internal
+        $crate::_internal_strong_id! {
             $(#[$outer])*
             $vis struct $t($inner)
         }
@@ -182,14 +181,17 @@ macro_rules! strong_id {
         $(#[$outer:meta])*
         $vis:vis struct $t:ident($inner:ty => $prefix:literal)
     ) => {
-        $crate::strong_id! {
-            @@internal
+        $crate::_internal_strong_id! {
             $(#[$outer])*
             $vis struct $t($inner => $prefix)
         }
     };
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! _internal_strong_id {
     (
-        @@internal
         $(#[$outer:meta])*
         $vis:vis struct $t:ident($inner:ty$( => $prefix:literal)?)
     ) => {
@@ -230,8 +232,7 @@ macro_rules! strong_uuid {
         $(#[$outer:meta])*
         $vis:vis struct $t:ident
     ) => {
-        $crate::strong_uuid! {
-            @@internal
+        $crate::_internal_strong_uuid! {
             $(#[$outer])*
             $vis struct $t()
         }
@@ -240,14 +241,17 @@ macro_rules! strong_uuid {
         $(#[$outer:meta])*
         $vis:vis struct $t:ident($prefix:literal)
     ) => {
-        $crate::strong_uuid! {
-            @@internal
+        $crate::_internal_strong_uuid! {
             $(#[$outer])*
             $vis struct $t($prefix)
         }
     };
+}
+#[cfg(feature = "uuid")]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! _internal_strong_uuid {
     (
-        @@internal
         $(#[$outer:meta])*
         $vis:vis struct $t:ident($($prefix:literal)?)
     ) => {
