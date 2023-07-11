@@ -8,9 +8,134 @@
 
 Strongly typed IDs which optionally satisfy the [TypeID](https://github.com/jetpack-io/typeid) specification.
 
-## TODO
-
 A StrongId is any type which implements `StrongId<T: Id>`. 
 
-`strong_id` implements traits for `u8`, `u16`, `u32`, `u64`, `u128`, `usize` and with the `"uuid"` feature, `Uuid`.
+The `Id` trait is implemented for `u8`, `u16`, `u32`, `u64`, `u128`, `usize` and when the `"uuid"` feature is enabled, 
+`Uuid`.
 
+## Examples
+
+### Dynamic StrongIds
+
+```rust
+use strong_id::{prefix, DynamicStrongId};
+
+let user_id = DynamicStrongId::<u16>::new(prefix!("user"), 3203).unwrap();
+println!("{}", user_id); // user_0343
+
+let user_id = "user_0343".parse::<DynamicStrongId<u16>>().unwrap();
+println!("{:#?}", user_id);
+// DynamicStrongId {
+// 	prefix: Some(
+// 		Prefix {
+// 			inner: "user",
+// 		},
+// 	),
+// 	suffix: 3203,
+// }
+```
+
+#### Dynamic TypeId
+
+```rust
+use strong_id::{prefix, DynamicStrongId};
+
+let user_id = DynamicStrongId::<Uuid>::now_v7(prefix!("user")).unwrap();
+println!("{}", user_id); // user_01h536gfwffx2rm6pa0xg63337
+
+let user_id = "user_01h536gfwffx2rm6pa0xg63337"
+  .parse::<DynamicStrongId<Uuid>>()
+  .unwrap();
+println!("{:#?}", user_id);
+// DynamicStrongId {
+// 	prefix: Some(
+// 		Prefix {
+// 			inner: "user",
+// 		},
+// 	),
+// 	suffix: 01894668-3f8f-7f45-8a1a-ca0760618c67,
+// }
+```
+
+### Generated StrongIds
+
+#### ID with a prefix
+```rust
+use strong_id::strong_id;
+
+strong_id!(pub struct UserId(u16 => "user"));
+
+let user_id = UserId::from(3203);
+println!("{}", user_id); // user_0343
+
+let user_id = "user_0343".parse::<UserId>().unwrap();
+println!("{:#?}", user_id);
+// UserId {
+// 	suffix: 3203,
+// }
+```
+
+#### ID without a prefix
+
+```rust
+use strong_id::strong_id;
+
+strong_id!(pub struct Id(u16));
+
+let id = Id::from(3203);
+println!("{}", id); // user_0343
+
+let id = "0343".parse::<Id>().unwrap();
+println!("{:#?}", id);
+// Id {
+// 	suffix: 3203,
+// }
+```
+
+#### Generated TypeId with a prefix
+
+```rust
+use strong_id::{strong_uuid, StrongUuid};
+
+strong_uuid!(pub struct UserId("user"));
+
+let user_id = UserId::now_v7();
+println!("{}", user_id); // user_01h536z8abez196j2nzz06y8c8
+
+let user_id = "user_01h536z8abez196j2nzz06y8c8".parse::<UserId>().unwrap();
+println!("{:#?}", user_id);
+// UserId {
+// 	suffix: 0189466f-a14b-77c2-9348-55ffc06f2188,
+// }
+```
+
+#### Generated TypeId without a prefix
+
+```rust
+use strong_id::{strong_uuid, StrongUuid};
+
+strong_uuid!(pub struct Id);
+
+let id = Id::now_v7();
+println!("{}", id); // 01h5372sq2egxb6ps3taq7p6np
+
+let id = "01h5372sq2egxb6ps3taq7p6np".parse::<Id>().unwrap();
+println!("{:#?}", id);
+// UserId {
+// 	suffix: 01894671-66e2-743a-b35b-23d2ae7b1ab6,
+// }
+```
+
+## Features
+
+- `delimited` - Enables underscore delimited prefixes. On by default.
+- `serde` - Enables serde support in code generation.
+- `uuid` - Enable uuid functionality.
+  - `uuid-v1` - corresponds with uuid "v1" feature
+  - `uuid-v3` - corresponds with uuid "v3" feature
+  - `uuid-v4` - corresponds with uuid "v4" feature
+  - `uuid-v5` - corresponds with uuid "v5" feature
+  - `uuid-v6` - corresponds with uuid "v6" feature
+  - `uuid-v7` - corresponds with uuid "v7" feature
+  - `uuid-v8` - corresponds with uuid "v8" feature
+- `typeid` - Enable features which satisfy the TypeId specification.
