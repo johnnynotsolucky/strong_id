@@ -294,6 +294,16 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 	proc_macro::TokenStream::from(expanded)
 }
 
+/// Validate `&'static str` prefixes at compile-time
+///
+/// ```
+/// use strong_id::prefix;
+///
+/// prefix!("user");
+/// prefix!("user_account");
+///
+/// // prefix!("USER");
+/// ```
 #[proc_macro]
 pub fn prefix(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let input = parse_macro_input!(input as LitStr);

@@ -1,3 +1,5 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 extern crate self as strong_id;
 
 mod base32;
@@ -18,50 +20,67 @@ use uuid::Uuid;
 #[cfg(feature = "serde")]
 pub use serde;
 
+/// Represents a type which can be encoded and decoded
 pub trait Id {
+	/// Encode the value into a `String`
 	fn encode(&self) -> String;
+	/// Decode the value from a `str`
 	fn decode<T: AsRef<str>>(val: T) -> Result<Self, Error>
 	where
 		Self: Sized;
 }
 
-pub trait StrongId<T: Id> {
+/// Represents a type which can be used as a StrongId
+pub trait StrongId<T: Id>: core::fmt::Display + core::str::FromStr {
 	fn prefix(&self) -> Option<&str>;
 	fn id(&self) -> &T;
 }
 
+/// Utility trait to allow StrongId's backed by a Uuid to wrap calls to Uuid `new_` and `now_`
+/// functions.
 #[cfg(feature = "uuid")]
+#[cfg_attr(docsrs, doc(cfg(feature = "uuid")))]
 pub trait StrongUuid {
 	fn from_u128(v: u128) -> Self;
 
 	#[cfg(feature = "uuid-v1")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v1")))]
 	fn new_v1(ts: uuid::Timestamp, node_id: &[u8; 6]) -> Self;
 
 	#[cfg(feature = "uuid-v1")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v1")))]
 	fn now_v1(node_id: &[u8; 6]) -> Self;
 
 	#[cfg(feature = "uuid-v3")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v3")))]
 	fn new_v3(namespace: &Uuid, name: &[u8]) -> Self;
 
 	#[cfg(feature = "uuid-v4")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v4")))]
 	fn new_v4() -> Self;
 
 	#[cfg(feature = "uuid-v5")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v5")))]
 	fn new_v5(namespace: &Uuid, name: &[u8]) -> Self;
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v6"))))]
 	fn new_v6(ts: uuid::Timestamp, node_id: &[u8; 6]) -> Self;
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v6"))))]
 	fn now_v6(node_id: &[u8; 6]) -> Self;
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v7"))))]
 	fn new_v7(ts: uuid::Timestamp) -> Self;
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v7"))))]
 	fn now_v7() -> Self;
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v8"))]
+	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v8"))))]
 	fn new_v8(buf: [u8; 16]) -> Self;
 }
 
@@ -117,24 +136,36 @@ impl Id for Uuid {
 	}
 }
 
+/// Errors which may occur when creating or parsing StrongIds
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum Error {
+	/// Created from a [`Base32Error`]
 	#[error(transparent)]
 	Base32Error(#[from] Base32Error),
+	/// A prefix was expected, but was not found
 	#[error("expected prefix `{0}`")]
 	MissingPrefix(String),
+	/// The given prefix did not match the expected prefix
 	#[error("invalid prefix. expected {0}, found {1}")]
 	InvalidPrefix(String, String),
+	/// A prefix was given, but none was expected
 	#[error("found prefix `{0}`, none expected")]
 	NoPrefixExpected(String),
+	/// The length of the encoded value to be decoded was incorrect
 	#[error("invalid length. expected {0}, found {1}")]
 	InvalidLength(usize, usize),
+	/// The prefix is too long
 	#[error("prefix too long. should be less than 64 characters, found {0}")]
 	PrefixTooLong(usize),
+	/// A non-alphanumeric, non-lowercase character was found. When the "delimited" feature is
+	/// enabled, this will not include the `'_'` character.
 	#[error("prefix may only contain lowercase ascii characters, found `{0}`")]
 	IncorrectPrefixCharacter(char),
 }
 
+/// Generate a StrongId
+///
+/// TODO examples
 #[macro_export]
 macro_rules! strong_id {
     (
@@ -190,7 +221,9 @@ macro_rules! strong_id {
     };
 }
 
+/// Generate a StrongId backed by a [`Uuid`]
 #[cfg(feature = "uuid")]
+#[cfg_attr(docsrs, doc(cfg(feature = "uuid")))]
 #[macro_export]
 macro_rules! strong_uuid {
     (
@@ -247,6 +280,7 @@ macro_rules! strong_uuid {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! _internal_impl_common {
 	(@@internal $t:ident($inner:ty)) => {
 		impl ::core::fmt::Display for $t {
@@ -262,6 +296,7 @@ macro_rules! _internal_impl_common {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! _internal_impl_from_str {
 	(@@internal $t:ident($inner:ty => $($prefix:literal)?)) => {
         impl ::core::str::FromStr for $t {

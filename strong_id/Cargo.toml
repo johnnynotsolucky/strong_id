@@ -75,3 +75,8 @@ all = [
   "uuid-v7",
   "uuid-v8",
 ]
+
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "uuid_unstable"]
+rustdoc-args = ["--cfg", "docsrs", "--cfg", "uuid_unstable"]
+all-features = true

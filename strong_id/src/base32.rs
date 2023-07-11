@@ -70,14 +70,19 @@ pub fn encode(src: &[u8], dst: &mut [u8]) {
 	}
 }
 
+/// Errors which might occur when encoding or decoding bytes into base32
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum Base32Error {
+	/// No bytes were supplied
 	#[error("empty source bytes")]
 	Empty,
+	/// An invalid byte was present in the slice
 	#[error("invalid source byte")]
 	InvalidByte,
+	/// The first byte can not be decoded
 	#[error("invalid first source byte")]
 	InvalidFirstByte,
+	/// The output slice is the wrong size and the data may not fit into it
 	#[error("out bytes slice is the wrong size. expected {0}, found {1}")]
 	InvalidOutBytesSize(usize, usize),
 }

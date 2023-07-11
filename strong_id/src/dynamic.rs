@@ -31,6 +31,7 @@ fn map_prefix<'p, I: Into<Prefix<'p>>>(prefix: Option<I>) -> Result<Option<Prefi
 	})
 }
 
+/// A StrongId with runtime validation
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct DynamicStrongId<'p, T: Id> {
 	prefix: Option<Prefix<'p>>,
@@ -38,6 +39,7 @@ pub struct DynamicStrongId<'p, T: Id> {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[doc(hidden)]
 pub struct Prefix<'p> {
 	inner: Cow<'p, str>,
 }
@@ -80,6 +82,8 @@ impl<'p> From<DynamicStrongId<'p, Uuid>> for Uuid {
 	}
 }
 
+/// Utility functions for calling Uuid `new_` and `now_` functions when a [`DynamicStrongId`] is
+/// backed by a [`Uuid`].
 #[cfg(feature = "uuid")]
 impl<'p> DynamicStrongId<'p, Uuid> {
 	pub fn from_u128<I: Into<Prefix<'p>>>(prefix: Option<I>, v: u128) -> Result<Self, Error> {
@@ -97,6 +101,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(feature = "uuid-v1")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v1")))]
 	pub fn new_v1<I: Into<Prefix<'p>>>(
 		prefix: Option<I>,
 		ts: uuid::Timestamp,
@@ -109,6 +114,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(feature = "uuid-v1")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v1")))]
 	pub fn now_v1<I: Into<Prefix<'p>>>(
 		prefix: Option<I>,
 		node_id: &[u8; 6],
@@ -120,6 +126,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(feature = "uuid-v3")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v3")))]
 	pub fn new_v3<I: Into<Prefix<'p>>>(
 		prefix: Option<I>,
 		namespace: &Uuid,
@@ -132,6 +139,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(feature = "uuid-v4")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v4")))]
 	pub fn new_v4<I: Into<Prefix<'p>>>(prefix: Option<I>) -> Result<Self, Error> {
 		Ok(Self {
 			prefix: map_prefix(prefix)?,
@@ -140,6 +148,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(feature = "uuid-v5")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v5")))]
 	pub fn new_v5<I: Into<Prefix<'p>>>(
 		prefix: Option<I>,
 		namespace: &Uuid,
@@ -152,6 +161,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
 	pub fn new_v6<I: Into<Prefix<'p>>>(
 		prefix: Option<I>,
 		ts: ::uuid::Timestamp,
@@ -164,6 +174,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
 	pub fn now_v6<I: Into<Prefix<'p>>>(
 		prefix: Option<I>,
 		node_id: &[u8; 6],
@@ -175,6 +186,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
 	pub fn new_v7<I: Into<Prefix<'p>>>(
 		prefix: Option<I>,
 		ts: ::uuid::Timestamp,
@@ -186,6 +198,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
 	pub fn now_v7<I: Into<Prefix<'p>>>(prefix: Option<I>) -> Result<Self, Error> {
 		Ok(Self {
 			prefix: map_prefix(prefix)?,
@@ -194,6 +207,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v8"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v8")))]
 	pub fn new_v8<I: Into<Prefix<'p>>>(prefix: Option<I>, buf: [u8; 16]) -> Result<Self, Error> {
 		Ok(Self {
 			prefix: map_prefix(prefix)?,
