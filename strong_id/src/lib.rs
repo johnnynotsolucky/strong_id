@@ -131,8 +131,6 @@ pub enum Error {
 	InvalidLength(usize, usize),
 	#[error("prefix too long. should be less than 64 characters, found {0}")]
 	PrefixTooLong(usize),
-	#[error("prefix may only contain lowercase ascii characters")]
-	IncorrectPrefixCase,
 	#[error("prefix may only contain lowercase ascii characters, found `{0}`")]
 	IncorrectPrefixCharacter(char),
 }

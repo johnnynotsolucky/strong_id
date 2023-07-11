@@ -22,7 +22,7 @@ fn map_prefix<'p, I: Into<Prefix<'p>>>(prefix: Option<I>) -> Result<Option<Prefi
 						return Err(Error::IncorrectPrefixCharacter(*b as char));
 					}
 
-					return Err(Error::IncorrectPrefixCase);
+					return Err(Error::IncorrectPrefixCharacter(*b as char));
 				}
 			}
 			if prefix.inner.is_empty() {
@@ -378,7 +378,9 @@ mod tests {
 			Case("8f", Error::Base32Error(Base32Error::InvalidFirstByte)),
 			Case("000", Error::InvalidLength(2, 3)),
 			Case("0l", Error::Base32Error(Base32Error::InvalidByte)),
-			Case("Case_00", Error::IncorrectPrefixCase),
+			Case("Case_00", Error::IncorrectPrefixCharacter('C')),
+			Case("00numeric_00", Error::IncorrectPrefixCharacter('0')),
+			Case("case0_00", Error::IncorrectPrefixCharacter('0')),
 		];
 
 		for case in cases {
