@@ -1,0 +1,38 @@
+on:
+  push:
+  pull_request:
+
+name: Continuous Integration
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - run: cargo test --all-features
+        env:
+          RUSTFLAGS: "--cfg uuid_unstable"
+  typeid_spec:
+    name: Test / TypeID Spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - run: cargo run --manifest-path tests/typeid_spec/Cargo.toml
+  msrv:
+    name: "Build / MSRV"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.60.0
+      - run: cargo +1.60.0 build --all-features --manifest-path tests/smoke_test/Cargo.toml
+        env:
+          RUSTFLAGS: "--cfg uuid_unstable"

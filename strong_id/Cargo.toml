@@ -1,0 +1,77 @@
+[package]
+name = "strong_id"
+version = "0.1.0"
+edition = "2021"
+description = "Strongly typed, base32 encoded IDs"
+authors = [
+  "Tyrone Tudehope<tyronetudehope@gmail.com>",
+]
+documentation = "https://docs.rs/strong_id"
+homepage = "https://github.com/johnnynotsolucky/strong_id"
+repository = "https://github.com/johnnynotsolucky/strong_id"
+categories = [
+]
+keywords = [
+  "guid",
+  "unique",
+  "uuid",
+  "id",
+  "base32",
+  "typeid",
+]
+license = "Apache-2.0 OR MIT"
+rust-version = "1.60"
+exclude = [
+  ".github/**"
+]
+
+[dependencies]
+strong_id_macros = { path = "../strong_id_macros" }
+bitvec = { version = "1", default-features = false, features = ["atomic", "alloc"] }
+serde = { version = "1.0", optional = true, default-features = false, features = ["std"] }
+thiserror = "1.0"
+uuid = { version = "1.4", default-features = false, features = ["std"], optional = true }
+
+[dev-dependencies]
+serde_json = "1.0"
+
+[features]
+default = [
+  "delimited",
+  "uuid",
+  "uuid-v4",
+]
+
+# enable underscore ('_') delimited prefixes
+delimited = ["strong_id_macros/delimited"]
+serde = ["dep:serde", "strong_id_macros/serde"]
+uuid = ["dep:uuid"]
+uuid-v1 = ["strong_id_macros/uuid-v1", "uuid?/v1"]
+uuid-v3 = ["strong_id_macros/uuid-v3", "uuid?/v3"]
+uuid-v4 = ["strong_id_macros/uuid-v4", "uuid?/v4"]
+uuid-v5 = ["strong_id_macros/uuid-v5", "uuid?/v5"]
+uuid-v6 = ["strong_id_macros/uuid-v6", "uuid?/v6"]
+uuid-v7 = ["strong_id_macros/uuid-v7", "uuid?/v7"]
+uuid-v8 = ["strong_id_macros/uuid-v8", "uuid?/v8"]
+
+# enable features which satisfy the TypeID spec
+# note: the TypeID spec does not allow delimited prefixes, so this should be used alongside
+# `default-features = false`
+typeid = [
+  "uuid",
+  "uuid-v7",
+]
+
+# enable all features. useful for testing.
+all = [
+  "delimited",
+  "serde",
+  "uuid",
+  "uuid-v1",
+  "uuid-v3",
+  "uuid-v4",
+  "uuid-v5",
+  "uuid-v6",
+  "uuid-v7",
+  "uuid-v8",
+]

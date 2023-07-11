@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+
+members = [
+  "strong_id",
+  "strong_id_macros",
+  "tests/typeid_spec",
+  "tests/smoke_test",
+]

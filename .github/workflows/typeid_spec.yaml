@@ -1,0 +1,18 @@
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 */6 * * *'
+
+name: TypeID Spec
+
+jobs:
+  test:
+    name: Typeid spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - run: cargo run --manifest-path tests/typeid_spec/Cargo.toml

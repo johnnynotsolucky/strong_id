@@ -1,0 +1,12 @@
+[package]
+name = "smoke_test"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+
+[dependencies.strong_id]
+path = "../../strong_id"
+default-features = false
+features = ["all"]
