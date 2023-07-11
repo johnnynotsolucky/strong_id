@@ -12,19 +12,15 @@ fn map_prefix<'p, I: Into<Prefix<'p>>>(prefix: Option<I>) -> Result<Option<Prefi
 			if prefix.inner.len() >= 64 {
 				return Err(Error::PrefixTooLong(prefix.inner.len()));
 			}
+
 			for b in prefix.inner.as_bytes() {
-				if !b.is_ascii_lowercase() {
-					if !b.is_ascii_alphanumeric() {
-						if *b == b'_' && cfg!(feature = "delimited") {
-							continue;
-						}
-
-						return Err(Error::IncorrectPrefixCharacter(*b as char));
-					}
-
+				if cfg!(feature = "delimited") && *b == b'_' {
+					continue;
+				} else if !b.is_ascii_lowercase() {
 					return Err(Error::IncorrectPrefixCharacter(*b as char));
 				}
 			}
+
 			if prefix.inner.is_empty() {
 				None
 			} else {
@@ -113,7 +109,10 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(feature = "uuid-v1")]
-	pub fn now_v1<I: Into<Prefix<'p>>>(prefix: Option<I>, node_id: &[u8; 6]) -> Result<Self, Error> {
+	pub fn now_v1<I: Into<Prefix<'p>>>(
+		prefix: Option<I>,
+		node_id: &[u8; 6],
+	) -> Result<Self, Error> {
 		Ok(Self {
 			prefix: map_prefix(prefix)?,
 			suffix: Uuid::now_v1(node_id),
@@ -165,7 +164,10 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
-	pub fn now_v6<I: Into<Prefix<'p>>>(prefix: Option<I>, node_id: &[u8; 6]) -> Result<Self, Error> {
+	pub fn now_v6<I: Into<Prefix<'p>>>(
+		prefix: Option<I>,
+		node_id: &[u8; 6],
+	) -> Result<Self, Error> {
 		Ok(Self {
 			prefix: map_prefix(prefix)?,
 			suffix: Uuid::now_v6(node_id),
@@ -173,7 +175,10 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
-	pub fn new_v7<I: Into<Prefix<'p>>>(prefix: Option<I>, ts: ::uuid::Timestamp) -> Result<Self, Error> {
+	pub fn new_v7<I: Into<Prefix<'p>>>(
+		prefix: Option<I>,
+		ts: ::uuid::Timestamp,
+	) -> Result<Self, Error> {
 		Ok(Self {
 			prefix: map_prefix(prefix)?,
 			suffix: Uuid::new_v7(ts),
