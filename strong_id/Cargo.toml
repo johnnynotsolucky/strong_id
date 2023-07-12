@@ -12,7 +12,6 @@ repository = "https://github.com/johnnynotsolucky/strong_id"
 categories = [
 ]
 keywords = [
-  "guid",
   "unique",
   "uuid",
   "id",
