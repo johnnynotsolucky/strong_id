@@ -9,6 +9,7 @@ authors = [
 documentation = "https://docs.rs/strong_id"
 homepage = "https://github.com/johnnynotsolucky/strong_id"
 repository = "https://github.com/johnnynotsolucky/strong_id"
+readme = "crates-io.md"
 categories = [
 ]
 keywords = [
