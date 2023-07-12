@@ -315,7 +315,7 @@ pub fn prefix(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 		quote!(None)
 	} else {
 		assert_prefix_valid(&value);
-		quote!(Some(#value))
+		quote!(#value)
 	};
 
 	proc_macro::TokenStream::from(expanded)

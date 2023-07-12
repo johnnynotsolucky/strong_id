@@ -5,33 +5,112 @@ use std::borrow::Cow;
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
 
-fn map_prefix<'p, I: Into<Prefix<'p>>>(prefix: Option<I>) -> Result<Option<Prefix<'p>>, Error> {
-	let prefix = prefix.map(Into::<Prefix>::into);
-	Ok(match prefix {
-		Some(prefix) => {
-			if prefix.inner.len() >= 64 {
-				return Err(Error::PrefixTooLong(prefix.inner.len()));
-			}
+fn map_prefix<'p, I: Into<Prefix<'p>>>(prefix: I) -> Result<Prefix<'p>, Error> {
+	let prefix = prefix.into();
+	if prefix.inner.len() >= 64 {
+		return Err(Error::PrefixTooLong(prefix.inner.len()));
+	}
 
-			for b in prefix.inner.as_bytes() {
-				if cfg!(feature = "delimited") && *b == b'_' {
-					continue;
-				} else if !b.is_ascii_lowercase() {
-					return Err(Error::IncorrectPrefixCharacter(*b as char));
-				}
-			}
-
-			if prefix.inner.is_empty() {
-				None
-			} else {
-				Some(prefix)
-			}
+	for b in prefix.inner.as_bytes() {
+		if cfg!(feature = "delimited") && *b == b'_' {
+			continue;
+		} else if !b.is_ascii_lowercase() {
+			return Err(Error::IncorrectPrefixCharacter(*b as char));
 		}
-		None => None,
-	})
+	}
+	if prefix.inner.is_empty() {
+		return Err(Error::PrefixExpected);
+	}
+	Ok(prefix)
 }
 
 /// A StrongId with runtime validation
+///
+/// ## Examples
+///
+/// #### ID with a prefix
+/// ```rust
+/// # fn main() {
+/// use strong_id::{prefix, DynamicStrongId};
+///
+/// let user_id = DynamicStrongId::<u16>::new(prefix!("user"), 3203).unwrap();
+/// println!("{}", user_id); // user_0343
+///
+/// let user_id = "user_0343".parse::<DynamicStrongId<u16>>().unwrap();
+/// println!("{:#?}", user_id);
+/// // DynamicStrongId {
+/// //     prefix: Some(
+/// //        Prefix {
+/// //           inner: "user",
+/// //        },
+/// //     ),
+/// //     suffix: 3203,
+/// // }
+/// # }
+/// ```
+///
+/// #### ID without a prefix
+/// ```rust
+/// # fn main() {
+/// use strong_id::{prefix, DynamicStrongId};
+///
+/// let user_id = DynamicStrongId::<u16>::new_plain(3203);
+/// println!("{}", user_id); // 0343
+///
+/// let user_id = "0343".parse::<DynamicStrongId<u16>>().unwrap();
+/// println!("{:#?}", user_id);
+/// // DynamicStrongId {
+/// //     prefix: None,
+/// //     suffix: 3203,
+/// // }
+/// # }
+/// ```
+///
+/// #### TypeId with a prefix
+///
+/// ```rust,ignore
+/// # fn main() {
+/// use strong_id::{prefix, DynamicStrongId};
+/// use uuid::Uuid;
+///
+/// let user_id = DynamicStrongId::<Uuid>::now_v7(prefix!("user")).unwrap();
+/// println!("{}", user_id); // user_01h536gfwffx2rm6pa0xg63337
+///
+/// let user_id = "user_01h536gfwffx2rm6pa0xg63337"
+///  .parse::<DynamicStrongId<Uuid>>()
+///  .unwrap();
+/// println!("{:#?}", user_id);
+/// // DynamicStrongId {
+/// //     prefix: Some(
+/// //        Prefix {
+/// //           inner: "user",
+/// //        },
+/// //     ),
+/// //     suffix: 01894668-3f8f-7f45-8a1a-ca0760618c67,
+/// // }
+/// # }
+/// ```
+///
+/// #### TypeId without a prefix
+///
+/// ```rust,ignore
+/// # fn main() {
+/// use strong_id::{prefix, DynamicStrongId};
+/// use uuid::Uuid;
+///
+/// let user_id = DynamicStrongId::<Uuid>::now_v7_plain();
+/// println!("{}", user_id); // 01h536gfwffx2rm6pa0xg63337
+///
+/// let user_id = "01h536gfwffx2rm6pa0xg63337"
+///  .parse::<DynamicStrongId<Uuid>>()
+///  .unwrap();
+/// println!("{:#?}", user_id);
+/// // DynamicStrongId {
+/// //     prefix: None,
+/// //     suffix: 01894668-3f8f-7f45-8a1a-ca0760618c67,
+/// // }
+/// # }
+/// ```
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct DynamicStrongId<'p, T: Id> {
 	prefix: Option<Prefix<'p>>,
@@ -67,11 +146,20 @@ impl<'p> From<String> for Prefix<'p> {
 }
 
 impl<'p, T: Id> DynamicStrongId<'p, T> {
-	pub fn new<I: Into<Prefix<'p>>>(prefix: Option<I>, value: T) -> Result<Self, Error> {
+	/// Create a new ID from a given value with a prefix
+	pub fn new<I: Into<Prefix<'p>>>(prefix: I, value: T) -> Result<Self, Error> {
 		Ok(Self {
-			prefix: map_prefix(prefix)?,
+			prefix: Some(map_prefix(prefix)?),
 			suffix: value,
 		})
+	}
+
+	/// Create a new ID from a given value without a prefix
+	pub fn new_plain(value: T) -> Self {
+		Self {
+			prefix: None,
+			suffix: value,
+		}
 	}
 }
 
@@ -82,137 +170,280 @@ impl<'p> From<DynamicStrongId<'p, Uuid>> for Uuid {
 	}
 }
 
-/// Utility functions for calling Uuid `new_` and `now_` functions when a [`DynamicStrongId`] is
-/// backed by a [`Uuid`].
+// Utility functions for calling Uuid `new_` and `now_` functions when a [`DynamicStrongId`] is
+// backed by a [`Uuid`].
 #[cfg(feature = "uuid")]
 impl<'p> DynamicStrongId<'p, Uuid> {
-	pub fn from_u128<I: Into<Prefix<'p>>>(prefix: Option<I>, v: u128) -> Result<Self, Error> {
+	/// Create a new UUID-backed ID from a u128 with a prefix
+	pub fn from_u128<I: Into<Prefix<'p>>>(prefix: I, v: u128) -> Result<Self, Error> {
 		Ok(Self {
-			prefix: map_prefix(prefix)?,
+			prefix: Some(map_prefix(prefix)?),
 			suffix: Uuid::from_u128(v),
 		})
 	}
 
-	pub fn from_uuid<I: Into<Prefix<'p>>>(prefix: Option<I>, uuid: Uuid) -> Result<Self, Error> {
-		Ok(Self {
-			prefix: map_prefix(prefix)?,
-			suffix: uuid,
-		})
+	/// Create a new UUID-backed ID from a u128 without a prefix
+	pub fn from_u128_plain(v: u128) -> Self {
+		Self {
+			prefix: None,
+			suffix: Uuid::from_u128(v),
+		}
 	}
 
 	#[cfg(feature = "uuid-v1")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v1")))]
+	/// Create a new UUID-backed ID by generating a v1 UUID with a prefix
+	///
+	/// See [`Uuid::new_v1`]
 	pub fn new_v1<I: Into<Prefix<'p>>>(
-		prefix: Option<I>,
+		prefix: I,
 		ts: uuid::Timestamp,
 		node_id: &[u8; 6],
 	) -> Result<Self, Error> {
 		Ok(Self {
-			prefix: map_prefix(prefix)?,
+			prefix: Some(map_prefix(prefix)?),
 			suffix: Uuid::new_v1(ts, node_id),
 		})
 	}
 
 	#[cfg(feature = "uuid-v1")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v1")))]
-	pub fn now_v1<I: Into<Prefix<'p>>>(
-		prefix: Option<I>,
-		node_id: &[u8; 6],
+	/// Create a new UUID-backed ID by generating a v1 UUID without a prefix
+	///
+	/// See [`Uuid::new_v1`]
+	pub fn new_v1_plain(ts: uuid::Timestamp, node_id: &[u8; 6]) -> Self {
+		Self {
+			prefix: None,
+			suffix: Uuid::new_v1(ts, node_id),
+		}
+	}
+
+	#[cfg(feature = "uuid-v1")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v1")))]
+	/// Create a new UUID-backed ID by generating a v1 UUID with a prefix
+	///
+	/// See [`Uuid::now_v1`]
+	pub fn now_v1<I: Into<Prefix<'p>>>(prefix: I, node_id: &[u8; 6]) -> Result<Self, Error> {
+		Ok(Self {
+			prefix: Some(map_prefix(prefix)?),
+			suffix: Uuid::now_v1(node_id),
+		})
+	}
+
+	#[cfg(feature = "uuid-v1")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v1")))]
+	/// Create a new UUID-backed ID by generating a v1 UUID without a prefix
+	///
+	/// See [`Uuid::now_v1`]
+	pub fn now_v1_plain(node_id: &[u8; 6]) -> Self {
+		Self {
+			prefix: None,
+			suffix: Uuid::now_v1(node_id),
+		}
+	}
+
+	#[cfg(feature = "uuid-v3")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v3")))]
+	/// Create a new UUID-backed ID by generating a v3 UUID with a prefix
+	///
+	/// See [`Uuid::new_v3`]
+	pub fn new_v3<I: Into<Prefix<'p>>>(
+		prefix: I,
+		namespace: &Uuid,
+		name: &[u8],
 	) -> Result<Self, Error> {
 		Ok(Self {
-			prefix: map_prefix(prefix)?,
-			suffix: Uuid::now_v1(node_id),
+			prefix: Some(map_prefix(prefix)?),
+			suffix: Uuid::new_v3(namespace, name),
 		})
 	}
 
 	#[cfg(feature = "uuid-v3")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v3")))]
-	pub fn new_v3<I: Into<Prefix<'p>>>(
-		prefix: Option<I>,
-		namespace: &Uuid,
-		name: &[u8],
-	) -> Result<Self, Error> {
-		Ok(Self {
-			prefix: map_prefix(prefix)?,
+	/// Create a new UUID-backed ID by generating a v3 UUID without a prefix
+	///
+	/// See [`Uuid::new_v3`]
+	pub fn new_v3_plain(namespace: &Uuid, name: &[u8]) -> Self {
+		Self {
+			prefix: None,
 			suffix: Uuid::new_v3(namespace, name),
+		}
+	}
+
+	#[cfg(feature = "uuid-v4")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v4")))]
+	/// Create a new UUID-backed ID by generating a v4 UUID with a prefix
+	///
+	/// See [`Uuid::new_v4`]
+	pub fn new_v4<I: Into<Prefix<'p>>>(prefix: I) -> Result<Self, Error> {
+		Ok(Self {
+			prefix: Some(map_prefix(prefix)?),
+			suffix: Uuid::new_v4(),
 		})
 	}
 
 	#[cfg(feature = "uuid-v4")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v4")))]
-	pub fn new_v4<I: Into<Prefix<'p>>>(prefix: Option<I>) -> Result<Self, Error> {
-		Ok(Self {
-			prefix: map_prefix(prefix)?,
+	/// Create a new UUID-backed ID by generating a v4 UUID without a prefix
+	///
+	/// See [`Uuid::new_v4`]
+	pub fn new_v4_plain() -> Self {
+		Self {
+			prefix: None,
 			suffix: Uuid::new_v4(),
+		}
+	}
+
+	#[cfg(feature = "uuid-v5")]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v5")))]
+	/// Create a new UUID-backed ID by generating a v5 UUID with a prefix
+	///
+	/// See [`Uuid::new_v5`]
+	pub fn new_v5<I: Into<Prefix<'p>>>(
+		prefix: I,
+		namespace: &Uuid,
+		name: &[u8],
+	) -> Result<Self, Error> {
+		Ok(Self {
+			prefix: Some(map_prefix(prefix)?),
+			suffix: Uuid::new_v5(namespace, name),
 		})
 	}
 
 	#[cfg(feature = "uuid-v5")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v5")))]
-	pub fn new_v5<I: Into<Prefix<'p>>>(
-		prefix: Option<I>,
-		namespace: &Uuid,
-		name: &[u8],
-	) -> Result<Self, Error> {
-		Ok(Self {
-			prefix: map_prefix(prefix)?,
+	/// Create a new UUID-backed ID by generating a v5 UUID without a prefix
+	///
+	/// See [`Uuid::new_v5`]
+	pub fn new_v5_plain(namespace: &Uuid, name: &[u8]) -> Self {
+		Self {
+			prefix: None,
 			suffix: Uuid::new_v5(namespace, name),
-		})
+		}
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
+	/// Create a new UUID-backed ID by generating a v6 UUID with a prefix
+	///
+	/// See [`Uuid::new_v6`]
 	pub fn new_v6<I: Into<Prefix<'p>>>(
-		prefix: Option<I>,
+		prefix: I,
 		ts: ::uuid::Timestamp,
 		node_id: &[u8; 6],
 	) -> Result<Self, Error> {
 		Ok(Self {
-			prefix: map_prefix(prefix)?,
+			prefix: Some(map_prefix(prefix)?),
 			suffix: Uuid::new_v6(ts, node_id),
 		})
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
-	pub fn now_v6<I: Into<Prefix<'p>>>(
-		prefix: Option<I>,
-		node_id: &[u8; 6],
-	) -> Result<Self, Error> {
+	/// Create a new UUID-backed ID by generating a v6 UUID without a prefix
+	///
+	/// See [`Uuid::new_v6`]
+	pub fn new_v6_plain(ts: ::uuid::Timestamp, node_id: &[u8; 6]) -> Self {
+		Self {
+			prefix: None,
+			suffix: Uuid::new_v6(ts, node_id),
+		}
+	}
+
+	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
+	/// Create a new UUID-backed ID by generating a v6 UUID with a prefix
+	///
+	/// See [`Uuid::now_v6`]
+	pub fn now_v6<I: Into<Prefix<'p>>>(prefix: I, node_id: &[u8; 6]) -> Result<Self, Error> {
 		Ok(Self {
-			prefix: map_prefix(prefix)?,
+			prefix: Some(map_prefix(prefix)?),
 			suffix: Uuid::now_v6(node_id),
 		})
 	}
 
+	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
+	/// Create a new UUID-backed ID by generating a v6 UUID without a prefix
+	///
+	/// See [`Uuid::now_v6`]
+	pub fn now_v6_plain(node_id: &[u8; 6]) -> Self {
+		Self {
+			prefix: None,
+			suffix: Uuid::now_v6(node_id),
+		}
+	}
+
 	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
-	pub fn new_v7<I: Into<Prefix<'p>>>(
-		prefix: Option<I>,
-		ts: ::uuid::Timestamp,
-	) -> Result<Self, Error> {
+	/// Create a new UUID-backed ID by generating a v7 UUID with a prefix
+	///
+	/// See [`Uuid::new_v7`]
+	pub fn new_v7<I: Into<Prefix<'p>>>(prefix: I, ts: ::uuid::Timestamp) -> Result<Self, Error> {
 		Ok(Self {
-			prefix: map_prefix(prefix)?,
+			prefix: Some(map_prefix(prefix)?),
 			suffix: Uuid::new_v7(ts),
 		})
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
-	pub fn now_v7<I: Into<Prefix<'p>>>(prefix: Option<I>) -> Result<Self, Error> {
+	/// Create a new UUID-backed ID by generating a v7 UUID without a prefix
+	///
+	/// See [`Uuid::new_v7`]
+	pub fn new_v7_plain(ts: ::uuid::Timestamp) -> Self {
+		Self {
+			prefix: None,
+			suffix: Uuid::new_v7(ts),
+		}
+	}
+
+	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
+	/// Create a new UUID-backed ID by generating a v7 UUID with a prefix
+	///
+	/// See [`Uuid::now_v7`]
+	pub fn now_v7<I: Into<Prefix<'p>>>(prefix: I) -> Result<Self, Error> {
 		Ok(Self {
-			prefix: map_prefix(prefix)?,
+			prefix: Some(map_prefix(prefix)?),
 			suffix: Uuid::now_v7(),
+		})
+	}
+
+	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
+	/// Create a new UUID-backed ID by generating a v7 UUID without a prefix
+	///
+	/// See [`Uuid::now_v7`]
+	pub fn now_v7_plain() -> Self {
+		Self {
+			prefix: None,
+			suffix: Uuid::now_v7(),
+		}
+	}
+
+	#[cfg(all(uuid_unstable, feature = "uuid-v8"))]
+	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v8")))]
+	/// Create a new UUID-backed ID by generating a v7 UUID with a prefix
+	///
+	/// See [`Uuid::new_v8`]
+	pub fn new_v8<I: Into<Prefix<'p>>>(prefix: I, buf: [u8; 16]) -> Result<Self, Error> {
+		Ok(Self {
+			prefix: Some(map_prefix(prefix)?),
+			suffix: Uuid::new_v8(buf),
 		})
 	}
 
 	#[cfg(all(uuid_unstable, feature = "uuid-v8"))]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v8")))]
-	pub fn new_v8<I: Into<Prefix<'p>>>(prefix: Option<I>, buf: [u8; 16]) -> Result<Self, Error> {
-		Ok(Self {
-			prefix: map_prefix(prefix)?,
+	/// Create a new UUID-backed ID by generating a v7 UUID without a prefix
+	///
+	/// See [`Uuid::new_v8`]
+	pub fn new_v8_plain(buf: [u8; 16]) -> Self {
+		Self {
+			prefix: None,
 			suffix: Uuid::new_v8(buf),
-		})
+		}
 	}
 }
 
@@ -237,7 +468,7 @@ impl<'p, T: Id> core::str::FromStr for DynamicStrongId<'p, T> {
 				return Err(Error::MissingPrefix(prefix.into()))
 			}
 			Some((prefix, suffix)) => Self {
-				prefix: map_prefix(Some(prefix.to_string()))?,
+				prefix: Some(map_prefix(prefix.to_string())?),
 				suffix: T::decode(suffix)?,
 			},
 			None => Self {
@@ -300,7 +531,10 @@ mod tests {
 		];
 
 		for case in cases {
-			let id = DynamicStrongId::new(case.0.clone(), case.2).unwrap();
+			let id = match &case.0 {
+				Some(prefix) => DynamicStrongId::new(prefix.clone(), case.2).unwrap(),
+				None => DynamicStrongId::new_plain(case.2),
+			};
 			assert_eq!(&format!("{id}"), case.1);
 			assert_eq!(*id.id(), case.2);
 
@@ -324,7 +558,10 @@ mod tests {
 		];
 
 		for case in cases {
-			let id = DynamicStrongId::new(case.0.clone(), case.2).unwrap();
+			let id = match &case.0 {
+				Some(prefix) => DynamicStrongId::new(prefix.clone(), case.2).unwrap(),
+				None => DynamicStrongId::new_plain(case.2),
+			};
 			assert_eq!(&format!("{id}"), case.1);
 			assert_eq!(*id.id(), case.2);
 
@@ -348,7 +585,10 @@ mod tests {
 		];
 
 		for case in cases {
-			let id = DynamicStrongId::new(case.0.clone(), case.2).unwrap();
+			let id = match &case.0 {
+				Some(prefix) => DynamicStrongId::new(prefix.clone(), case.2).unwrap(),
+				None => DynamicStrongId::new_plain(case.2),
+			};
 			assert_eq!(&format!("{id}"), case.1);
 			assert_eq!(*id.id(), case.2);
 

@@ -65,7 +65,10 @@ fn main() {
 			Trial::test(format!("valid::dynamic::{}", case.name), move || {
 				let uuid = Uuid::from_str(&case.uuid).unwrap();
 				// encode
-				let encoded = DynamicStrongId::from_uuid(case.prefix(), uuid).unwrap();
+				let encoded = match case.prefix() {
+					Some(prefix) => DynamicStrongId::new(prefix, uuid).unwrap(),
+					None => DynamicStrongId::new_plain(uuid),
+				};
 				assert_eq!(encoded.to_string(), case.typeid);
 				assert_eq!(*encoded.id(), uuid);
 

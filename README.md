@@ -17,6 +17,7 @@ The `Id` trait is implemented for `u8`, `u16`, `u32`, `u64`, `u128`, `usize` and
 
 ### Dynamic StrongIds
 
+#### ID with a prefix
 ```rust
 use strong_id::{prefix, DynamicStrongId};
 
@@ -26,16 +27,31 @@ println!("{}", user_id); // user_0343
 let user_id = "user_0343".parse::<DynamicStrongId<u16>>().unwrap();
 println!("{:#?}", user_id);
 // DynamicStrongId {
-// 	prefix: Some(
-// 		Prefix {
-// 			inner: "user",
-// 		},
-// 	),
-// 	suffix: 3203,
+//     prefix: Some(
+//        Prefix {
+//           inner: "user",
+//        },
+//     ),
+//     suffix: 3203,
 // }
 ```
 
-#### Dynamic TypeId
+#### ID without a prefix
+```rust
+use strong_id::{prefix, DynamicStrongId};
+
+let id = DynamicStrongId::<u16>::new_plain(3203);
+println!("{}", id); // 0343
+
+let id = "0343".parse::<DynamicStrongId<u16>>().unwrap();
+println!("{:#?}", id);
+// DynamicStrongId {
+//     prefix: None,
+//     suffix: 3203,
+// }
+```
+
+#### TypeId with a prefix
 
 ```rust
 use strong_id::{prefix, DynamicStrongId};
@@ -48,12 +64,30 @@ let user_id = "user_01h536gfwffx2rm6pa0xg63337"
   .unwrap();
 println!("{:#?}", user_id);
 // DynamicStrongId {
-// 	prefix: Some(
-// 		Prefix {
-// 			inner: "user",
-// 		},
-// 	),
-// 	suffix: 01894668-3f8f-7f45-8a1a-ca0760618c67,
+//     prefix: Some(
+//        Prefix {
+//           inner: "user",
+//        },
+//     ),
+//     suffix: 01894668-3f8f-7f45-8a1a-ca0760618c67,
+// }
+```
+
+#### TypeId without a prefix
+
+```rust
+use strong_id::{prefix, DynamicStrongId};
+
+let id = DynamicStrongId::<Uuid>::now_v7_plain();
+println!("{}", id); // 01h536gfwffx2rm6pa0xg63337
+
+let id = "01h536gfwffx2rm6pa0xg63337"
+  .parse::<DynamicStrongId<Uuid>>()
+  .unwrap();
+println!("{:#?}", id);
+// DynamicStrongId {
+//     prefix: None,
+//     suffix: 01894668-3f8f-7f45-8a1a-ca0760618c67,
 // }
 ```
 
@@ -71,7 +105,7 @@ println!("{}", user_id); // user_0343
 let user_id = "user_0343".parse::<UserId>().unwrap();
 println!("{:#?}", user_id);
 // UserId {
-// 	suffix: 3203,
+//     suffix: 3203,
 // }
 ```
 
@@ -88,7 +122,7 @@ println!("{}", id); // user_0343
 let id = "0343".parse::<Id>().unwrap();
 println!("{:#?}", id);
 // Id {
-// 	suffix: 3203,
+//     suffix: 3203,
 // }
 ```
 
@@ -105,7 +139,7 @@ println!("{}", user_id); // user_01h536z8abez196j2nzz06y8c8
 let user_id = "user_01h536z8abez196j2nzz06y8c8".parse::<UserId>().unwrap();
 println!("{:#?}", user_id);
 // UserId {
-// 	suffix: 0189466f-a14b-77c2-9348-55ffc06f2188,
+//     suffix: 0189466f-a14b-77c2-9348-55ffc06f2188,
 // }
 ```
 
@@ -122,7 +156,7 @@ println!("{}", id); // 01h5372sq2egxb6ps3taq7p6np
 let id = "01h5372sq2egxb6ps3taq7p6np".parse::<Id>().unwrap();
 println!("{:#?}", id);
 // UserId {
-// 	suffix: 01894671-66e2-743a-b35b-23d2ae7b1ab6,
+//     suffix: 01894671-66e2-743a-b35b-23d2ae7b1ab6,
 // }
 ```
 
