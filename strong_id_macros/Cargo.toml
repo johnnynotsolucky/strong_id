@@ -2,7 +2,11 @@
 name = "strong_id_macros"
 version = "0.1.0"
 edition = "2021"
-description = "strong_id_macros"
+description = "Macros for the strong_id crate"
+license = "Apache-2.0 OR MIT"
+authors = [
+  "Tyrone Tudehope<tyronetudehope@gmail.com>",
+]
 
 [lib]
 proc-macro = true
