@@ -51,8 +51,8 @@ fn fetch_cases<T: Case + DeserializeOwned>() -> Vec<T> {
 	.unwrap()
 }
 
-strong_uuid!(struct NoPrefix);
-strong_uuid!(struct Prefix("prefix"));
+strong_uuid!(struct NoPrefix(Uuid));
+strong_uuid!(struct Prefix(Uuid => "prefix"));
 
 fn main() {
 	let valid_cases = fetch_cases::<ValidCase>();

@@ -139,7 +139,14 @@ println!("{:#?}", id);
 ```rust
 use strong_id::{strong_uuid, StrongUuid};
 
-strong_uuid!(pub struct UserId("user"));
+strong_uuid!(pub struct UserId(pub Uuid => "user"));
+// strong_uuid!(struct UserId(Uuid => "user"));
+/*
+strong_id! {
+    #[derive(StrongUuid)]
+    pub struct UserId(pub Uuid => "user")    
+}
+*/
 
 let user_id = UserId::now_v7();
 println!("{}", user_id); // user_01h536z8abez196j2nzz06y8c8
@@ -156,7 +163,14 @@ println!("{:#?}", user_id);
 ```rust
 use strong_id::{strong_uuid, StrongUuid};
 
-strong_uuid!(pub struct Id);
+strong_uuid!(pub struct Id(pub Uuid));
+// strong_uuid!(struct Id(Uuid));
+/*
+strong_id! {
+    #[derive(StrongUuid)]
+    pub struct Id(pub Uuid)    
+}
+*/
 
 let id = Id::now_v7();
 println!("{}", id); // 01h5372sq2egxb6ps3taq7p6np

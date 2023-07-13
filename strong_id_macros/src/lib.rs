@@ -1,9 +1,7 @@
 extern crate proc_macro;
 
-use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DeriveInput, LitStr, Type};
-
-const DEFAULT_SUFFIX: &str = "suffix";
+use quote::quote;
+use syn::{parse_macro_input, Data, DeriveInput, Fields, LitStr, Type};
 
 fn assert_prefix_valid(prefix: &str) {
 	assert!(prefix.len() < 64, "prefix is longer than 63 characters");
@@ -22,7 +20,6 @@ fn assert_prefix_valid(prefix: &str) {
 
 struct Attributes {
 	prefix: Option<String>,
-	suffix: String,
 	suffix_type: Type,
 }
 
@@ -58,23 +55,19 @@ fn from_input(input: &DeriveInput) -> Result<Attributes, syn::Error> {
 		}
 	}
 
-	let suffix = suffix.unwrap_or_else(|| DEFAULT_SUFFIX.to_string());
-
 	let field = match &input.data {
-		Data::Struct(struct_data) => struct_data
-			.fields
-			.iter()
-			.find(|field| match &field.ident {
-				Some(ident) => ident == &suffix,
-				None => false,
-			})
-			.unwrap_or_else(|| panic!("expected named field `{}`", suffix)),
+		Data::Struct(data_struct) => match &data_struct.fields {
+			Fields::Unnamed(fields) => match fields.unnamed.first() {
+				Some(field) => field,
+				None => panic!("tuple should have a single field"),
+			},
+			_ => panic!("must be a tuple struct with a single field"),
+		},
 		_ => panic!("type must be a struct"),
 	};
 
 	let attributes = Attributes {
 		prefix,
-		suffix,
 		suffix_type: field.ty.clone(),
 	};
 
@@ -104,8 +97,6 @@ pub fn derive_strong_id(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 			quote!(None)
 		}
 	};
-
-	let suffix = format_ident!("{}", attributes.suffix,);
 
 	let suffix_type = attributes.suffix_type;
 	let suffix_type = quote!(#suffix_type);
@@ -143,7 +134,7 @@ pub fn derive_strong_id(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 			}
 
 			fn id(&self) -> &#suffix_type {
-				&self.#suffix
+				&self.0
 			}
 		}
 
@@ -153,34 +144,20 @@ pub fn derive_strong_id(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 	proc_macro::TokenStream::from(expanded)
 }
 
-#[proc_macro_derive(StrongUuid, attributes(strong_id))]
+#[proc_macro_derive(StrongUuid)]
 pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let input = parse_macro_input!(input as DeriveInput);
 
 	let name = &input.ident;
 
-	let attributes = match from_input(&input) {
-		Err(error) => {
-			let error = error.to_compile_error();
-			return quote!(#error).into();
-		}
-		Ok(attributes) => attributes,
-	};
-
-	let suffix = format_ident!("{}", attributes.suffix,);
-
 	let uuid_v1_impl = if cfg!(feature = "uuid-v1") {
 		quote! {
 			fn new_v1(ts: ::strong_id::uuid::Timestamp, node_id: &[u8; 6]) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::new_v1(ts, node_id)
-				}
+				Self(::strong_id::uuid::Uuid::new_v1(ts, node_id))
 			}
 
 			fn now_v1(node_id: &[u8; 6]) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::now_v1(node_id)
-				}
+				Self(::strong_id::uuid::Uuid::now_v1(node_id))
 			}
 		}
 	} else {
@@ -190,9 +167,7 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 	let uuid_v3_impl = if cfg!(feature = "uuid-v3") {
 		quote! {
 			fn new_v3(namespace: &::strong_id::uuid::Uuid, name: &[u8]) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::new_v3(namespace, name)
-				}
+				Self (::strong_id::uuid::Uuid::new_v3(namespace, name))
 			}
 		}
 	} else {
@@ -202,9 +177,7 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 	let uuid_v4_impl = if cfg!(feature = "uuid-v4") {
 		quote! {
 			fn new_v4() -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::new_v4()
-				}
+				Self(::strong_id::uuid::Uuid::new_v4())
 			}
 		}
 	} else {
@@ -214,9 +187,7 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 	let uuid_v5_impl = if cfg!(feature = "uuid-v5") {
 		quote! {
 			fn new_v5(namespace: &::strong_id::uuid::Uuid, name: &[u8]) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::new_v5(namespace, name)
-				}
+				Self(::strong_id::uuid::Uuid::new_v5(namespace, name))
 			}
 		}
 	} else {
@@ -226,15 +197,11 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 	let uuid_v6_impl = if cfg!(all(uuid_unstable, feature = "uuid-v6")) {
 		quote! {
 			fn new_v6(ts: ::strong_id::uuid::Timestamp, node_id: &[u8; 6]) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::new_v6(ts, node_id)
-				}
+				Self(::strong_id::uuid::Uuid::new_v6(ts, node_id))
 			}
 
 			fn now_v6(node_id: &[u8; 6]) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::now_v6(node_id)
-				}
+				Self(::strong_id::uuid::Uuid::now_v6(node_id))
 			}
 		}
 	} else {
@@ -244,15 +211,11 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 	let uuid_v7_impl = if cfg!(all(uuid_unstable, feature = "uuid-v7")) {
 		quote! {
 			fn new_v7(ts: ::strong_id::uuid::Timestamp) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::new_v7(ts)
-				}
+				Self(::strong_id::uuid::Uuid::new_v7(ts))
 			}
 
 			fn now_v7() -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::now_v7()
-				}
+				Self(::strong_id::uuid::Uuid::now_v7())
 			}
 		}
 	} else {
@@ -262,9 +225,7 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 	let uuid_v8_impl = if cfg!(all(uuid_unstable, feature = "uuid-v8")) {
 		quote! {
 			fn new_v8(buf: [u8; 16]) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::new_v8(buf)
-				}
+				Self(::strong_id::uuid::Uuid::new_v8(buf))
 			}
 		}
 	} else {
@@ -274,9 +235,7 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 	let expanded = quote! {
 		impl ::strong_id::StrongUuid for #name {
 			fn from_u128(v: u128) -> Self {
-				Self {
-					#suffix: ::strong_id::uuid::Uuid::from_u128(v)
-				}
+				Self(::strong_id::uuid::Uuid::from_u128(v))
 			}
 
 			#uuid_v1_impl

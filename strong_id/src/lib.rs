@@ -125,7 +125,7 @@
 //! ```rust,ignore
 //! use strong_id::{strong_uuid, StrongUuid};
 //!
-//! strong_uuid!(pub struct UserId("user"));
+//! strong_uuid!(pub struct UserId(pub Uuid => "user"));
 //!
 //! let user_id = UserId::now_v7();
 //! println!("{}", user_id); // user_01h536z8abez196j2nzz06y8c8
@@ -137,12 +137,23 @@
 //! // }
 //! ```
 //!
+//! Alternatively, derive [`StrongUuid`] yourself:
+//!
+//! ```rust,ignore
+//! use uuid::Uuid;
+//!
+//! strong_id! {
+//!     #[derive(StrongUuid)]
+//!     pub struct UserId(pub Uuid => "user")
+//! }
+//! ```
+//!
 //! #### Generated TypeId without a prefix
 //!
 //! ```rust,ignore
 //! use strong_id::{strong_uuid, StrongUuid};
 //!
-//! strong_uuid!(pub struct Id);
+//! strong_uuid!(pub struct Id(pub Uuid);
 //!
 //! let id = Id::now_v7();
 //! println!("{}", id); // 01h5372sq2egxb6ps3taq7p6np
@@ -329,20 +340,20 @@ pub enum Error {
 macro_rules! strong_id {
     (
         $(#[$outer:meta])*
-        $vis:vis struct $t:ident($inner:ty)
+        $vis:vis struct $t:ident($inner_vis:vis $inner:ty)
     ) => {
         $crate::_internal_strong_id! {
             $(#[$outer])*
-            $vis struct $t($inner)
+            $vis struct $t($inner_vis $inner)
         }
     };
     (
         $(#[$outer:meta])*
-        $vis:vis struct $t:ident($inner:ty => $prefix:literal)
+        $vis:vis struct $t:ident($inner_vis:vis $inner:ty => $prefix:literal)
     ) => {
         $crate::_internal_strong_id! {
             $(#[$outer])*
-            $vis struct $t($inner => $prefix)
+            $vis struct $t($inner_vis $inner => $prefix)
         }
     };
 }
@@ -352,93 +363,60 @@ macro_rules! strong_id {
 macro_rules! _internal_strong_id {
     (
         $(#[$outer:meta])*
-        $vis:vis struct $t:ident($inner:ty$( => $prefix:literal)?)
+        $vis:vis struct $t:ident($inner_vis:vis $inner:ty$( => $prefix:literal)?)
     ) => {
         $(#[$outer])*
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
         #[derive($crate::StrongId)]
 		#[strong_id($(prefix = $prefix, )?suffix = "suffix")]
-        $vis struct $t {
-            suffix: $inner,
-        }
+        $vis struct $t($inner_vis $inner);
 
 		$crate::_internal_impl_common!(@@internal $t($inner));
 
 		$crate::_internal_impl_from_str!(@@internal $t($inner => $($prefix)?));
-
-        impl From<$t> for $inner {
-            fn from(value: $t) -> Self {
-                value.suffix
-            }
-        }
-
-        impl From<$inner> for $t {
-            fn from(value: $inner) -> Self {
-                Self {
-                    suffix: value,
-                }
-            }
-        }
     };
 }
 
-/// Generate a StrongId backed by a [`Uuid`]
+/// Generate a StrongId backed by a [`Uuid`].
+///
+/// This is a convenient wrapper around to [`strong_id`] which derives [`StrongUuid`].
 #[cfg(feature = "uuid")]
 #[cfg_attr(docsrs, doc(cfg(feature = "uuid")))]
 #[macro_export]
 macro_rules! strong_uuid {
     (
         $(#[$outer:meta])*
-        $vis:vis struct $t:ident
+        $vis:vis struct $t:ident($inner_vis:vis Uuid)
     ) => {
         $crate::_internal_strong_uuid! {
             $(#[$outer])*
-            $vis struct $t()
+            $vis struct $t($inner_vis Uuid)
         }
     };
     (
         $(#[$outer:meta])*
-        $vis:vis struct $t:ident($prefix:literal)
+        $vis:vis struct $t:ident($inner_vis:vis Uuid => $prefix:literal)
     ) => {
         $crate::_internal_strong_uuid! {
             $(#[$outer])*
-            $vis struct $t($prefix)
+            $vis struct $t($inner_vis Uuid => $prefix)
         }
     };
 }
+
 #[cfg(feature = "uuid")]
 #[macro_export]
 #[doc(hidden)]
 macro_rules! _internal_strong_uuid {
     (
         $(#[$outer:meta])*
-        $vis:vis struct $t:ident($($prefix:literal)?)
+        $vis:vis struct $t:ident($inner_vis:vis Uuid$( => $prefix:literal)?)
     ) => {
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
-        #[derive($crate::StrongId, $crate::StrongUuid)]
-        $(#[$outer])*
-		#[strong_id($(prefix = $prefix, )?suffix = "suffix")]
-        $vis struct $t {
-            suffix: $crate::uuid::Uuid,
-        }
-
-		$crate::_internal_impl_common!(@@internal $t($crate::uuid::Uuid));
-
-		$crate::_internal_impl_from_str!(@@internal $t($crate::uuid::Uuid => $($prefix)?));
-
-        impl From<$t> for $crate::uuid::Uuid {
-            fn from(value: $t) -> Self {
-                value.suffix
-            }
-        }
-
-        impl From<$crate::uuid::Uuid> for $t {
-            fn from(uuid: $crate::uuid::Uuid) -> Self {
-                Self {
-                    suffix: uuid,
-                }
-            }
-        }
+		$crate::strong_id!{
+			#[derive($crate::StrongUuid)]
+            $(#[$outer])*
+			$vis struct $t($inner_vis $crate::uuid::Uuid$( => $prefix)?)
+		}
     };
 }
 
@@ -450,9 +428,21 @@ macro_rules! _internal_impl_common {
 			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
 				use $crate::{Id, StrongId};
 				match self.prefix() {
-					Some(prefix) => write!(f, "{}_{}", prefix, self.suffix.encode()),
-					None => write!(f, "{}", self.suffix.encode()),
+					Some(prefix) => write!(f, "{}_{}", prefix, self.0.encode()),
+					None => write!(f, "{}", self.0.encode()),
 				}
+			}
+		}
+
+		impl From<$t> for $inner {
+			fn from(value: $t) -> Self {
+				value.0
+			}
+		}
+
+		impl From<$inner> for $t {
+			fn from(value: $inner) -> Self {
+				Self(value)
 			}
 		}
 	};
@@ -496,9 +486,7 @@ macro_rules! _internal_impl_from_str {
 					}
                 };
 
-				Ok(Self {
-					suffix,
-				})
+				Ok(Self(suffix))
             }
         }
 	}
@@ -527,7 +515,7 @@ mod tests {
 			assert_eq!(*id.id(), case.1);
 
 			let parsed = case.0.parse::<PrefixU32>().unwrap();
-			assert_eq!(parsed.suffix, case.1);
+			assert_eq!(parsed.0, case.1);
 			assert_eq!(*parsed.id(), case.1);
 		}
 	}
@@ -580,7 +568,7 @@ mod tests {
 			assert_eq!(*id.id(), case.1);
 
 			let parsed = case.0.parse::<NoPrefixU16>().unwrap();
-			assert_eq!(parsed.suffix, case.1);
+			assert_eq!(parsed.0, case.1);
 			assert_eq!(*parsed.id(), case.1);
 		}
 	}
