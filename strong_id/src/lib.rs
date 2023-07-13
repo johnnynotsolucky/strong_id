@@ -29,6 +29,7 @@
 //! ```
 //!
 //! #### ID without a prefix
+//!
 //! ```rust
 //! use strong_id::{prefix, DynamicStrongId};
 //!
@@ -139,7 +140,8 @@
 //!
 //! Alternatively, derive [`StrongUuid`] yourself:
 //!
-//! ```rust,ignore
+//! ```rust
+//! use strong_id::{strong_id, StrongUuid};
 //! use uuid::Uuid;
 //!
 //! strong_id! {
@@ -147,6 +149,18 @@
 //!     pub struct UserId(pub Uuid => "user")
 //! }
 //! ```
+//!
+//! If you don't need the utility functions, then just create a Uuid-backed ID:
+//!
+//! ```rust
+//! use strong_id::strong_id;
+//! use uuid::Uuid;
+//!
+//! strong_id!(pub struct UserId(pub Uuid));
+//! ```
+//!
+//! Note that this would still require the "uuid" feature so that the [`Id`] trait can be implemented
+//! for Uuid.
 //!
 //! #### Generated TypeId without a prefix
 //!
