@@ -414,9 +414,9 @@ macro_rules! _internal_strong_uuid {
         $(#[$outer:meta])*
         $vis:vis struct $t:ident($($prefix:literal)?)
     ) => {
-        $(#[$outer])*
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
         #[derive($crate::StrongId, $crate::StrongUuid)]
+        $(#[$outer])*
 		#[strong_id($(prefix = $prefix, )?suffix = "suffix")]
         $vis struct $t {
             suffix: $crate::uuid::Uuid,

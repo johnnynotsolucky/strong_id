@@ -112,7 +112,6 @@ pub fn derive_strong_id(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 
 	let serde = if cfg!(feature = "serde") {
 		quote! {
-			#[cfg(feature = "serde")]
 			impl ::strong_id::serde::Serialize for #name {
 				 fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 				 where
@@ -122,7 +121,6 @@ pub fn derive_strong_id(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 				 }
 			}
 
-			#[cfg(feature = "serde")]
 			impl<'de> ::strong_id::serde::Deserialize<'de> for #name {
 				 fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 				 where
