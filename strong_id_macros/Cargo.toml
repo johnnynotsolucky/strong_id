@@ -1,6 +1,6 @@
 [package]
 name = "strong_id_macros"
-version = "0.1.3"
+version = "0.2.0"
 edition = "2021"
 description = "Macros for the strong_id crate"
 license = "Apache-2.0 OR MIT"
