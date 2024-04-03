@@ -268,20 +268,21 @@ pub trait StrongUuid {
 macro_rules! impl_strong_uint {
 	($t:ty) => {
 		impl Id for $t {
-			fn encode(&self) -> String {
+			fn encode(&self) -> ::std::string::String {
 				let mut out = [0u8; encoded_len::<$t>()];
-				base32::encode(&self.to_be_bytes(), &mut out);
+				::strong_id::base32::encode(&self.to_be_bytes(), &mut out);
 				let encoded = unsafe { ::core::str::from_utf8_unchecked(&out) };
-				format!("{encoded}")
+				encoded.to_string()
 			}
 
-			fn decode<T: AsRef<str>>(val: T) -> Result<Self, Error> {
+			fn decode<T: AsRef<str>>(val: T) -> ::core::result::Result<Self, ::strong_id::Error> {
 				let val = val.as_ref();
 				if val.len() != encoded_len::<$t>() {
-					return Err(Error::InvalidLength(encoded_len::<$t>(), val.len()));
+					return Err(::strong_id::Error::InvalidLength(encoded_len::<$t>(), val.len()));
 				}
-				let mut out = [0; core::mem::size_of::<$t>()];
-				base32::decode(val.as_bytes(), &mut out)?;
+				
+				let mut out = [0; ::core::mem::size_of::<$t>()];
+				::strong_id::base32::decode(val.as_bytes(), &mut out)?;
 
 				Ok(Self::from_be_bytes(out))
 			}
@@ -302,7 +303,7 @@ impl Id for Uuid {
 		let mut out = [0; 26];
 		base32::encode(self.as_bytes(), &mut out);
 		let encoded = unsafe { core::str::from_utf8_unchecked(&out) };
-		format!("{encoded}")
+		encoded.to_string()
 	}
 
 	fn decode<T: AsRef<str>>(val: T) -> Result<Self, Error> {
@@ -470,7 +471,7 @@ macro_rules! _internal_impl_from_str {
 			type Err = $crate::Error;
 
             #[inline]
-            fn from_str(value: &str) -> Result<Self, Self::Err> {
+            fn from_str(value: &str) -> ::core::result::Result<Self, Self::Err> {
 				let split = value.rsplit_once('_');
 
 				#[allow(unused_mut)]
