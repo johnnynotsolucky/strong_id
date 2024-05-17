@@ -14,8 +14,6 @@ jobs:
         with:
           toolchain: stable
       - run: cargo test --all-features
-        env:
-          RUSTFLAGS: "--cfg uuid_unstable"
   msrv:
     name: "Build / MSRV"
     runs-on: ubuntu-latest
@@ -25,5 +23,3 @@ jobs:
         with:
           toolchain: 1.60.0
       - run: cargo +1.60.0 build --all-features --manifest-path tests/smoke_test/Cargo.toml
-        env:
-          RUSTFLAGS: "--cfg uuid_unstable"

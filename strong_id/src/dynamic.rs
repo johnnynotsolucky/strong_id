@@ -11,16 +11,25 @@ fn map_prefix<'p, I: Into<Prefix<'p>>>(prefix: I) -> Result<Prefix<'p>, Error> {
 		return Err(Error::PrefixTooLong(prefix.inner.len()));
 	}
 
-	for b in prefix.inner.as_bytes() {
+	if prefix.inner.is_empty() {
+		return Err(Error::PrefixExpected);
+	}
+
+	let underscore = b'_';
+	let bytes = prefix.inner.as_bytes();
+
+	if *bytes.first().unwrap() == underscore || *bytes.last().unwrap() == underscore {
+		return Err(Error::IncorrectPrefixCharacter(underscore as char));
+	}
+
+	for b in bytes {
 		if cfg!(feature = "delimited") && *b == b'_' {
 			continue;
 		} else if !b.is_ascii_lowercase() {
 			return Err(Error::IncorrectPrefixCharacter(*b as char));
 		}
 	}
-	if prefix.inner.is_empty() {
-		return Err(Error::PrefixExpected);
-	}
+
 	Ok(prefix)
 }
 
@@ -322,7 +331,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		}
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg(feature = "uuid-v6")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
 	/// Create a new UUID-backed ID by generating a v6 UUID with a prefix
 	///
@@ -338,7 +347,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		})
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg(feature = "uuid-v6")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
 	/// Create a new UUID-backed ID by generating a v6 UUID without a prefix
 	///
@@ -350,7 +359,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		}
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg(feature = "uuid-v6")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
 	/// Create a new UUID-backed ID by generating a v6 UUID with a prefix
 	///
@@ -362,7 +371,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		})
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
+	#[cfg(feature = "uuid-v6")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v6")))]
 	/// Create a new UUID-backed ID by generating a v6 UUID without a prefix
 	///
@@ -374,7 +383,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		}
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg(feature = "uuid-v7")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
 	/// Create a new UUID-backed ID by generating a v7 UUID with a prefix
 	///
@@ -386,7 +395,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		})
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg(feature = "uuid-v7")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
 	/// Create a new UUID-backed ID by generating a v7 UUID without a prefix
 	///
@@ -398,7 +407,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		}
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg(feature = "uuid-v7")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
 	/// Create a new UUID-backed ID by generating a v7 UUID with a prefix
 	///
@@ -410,7 +419,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		})
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
+	#[cfg(feature = "uuid-v7")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v7")))]
 	/// Create a new UUID-backed ID by generating a v7 UUID without a prefix
 	///
@@ -422,7 +431,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		}
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v8"))]
+	#[cfg(feature = "uuid-v8")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v8")))]
 	/// Create a new UUID-backed ID by generating a v7 UUID with a prefix
 	///
@@ -434,7 +443,7 @@ impl<'p> DynamicStrongId<'p, Uuid> {
 		})
 	}
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v8"))]
+	#[cfg(feature = "uuid-v8")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v8")))]
 	/// Create a new UUID-backed ID by generating a v7 UUID without a prefix
 	///

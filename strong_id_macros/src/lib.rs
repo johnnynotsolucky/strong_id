@@ -4,10 +4,17 @@ use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, LitStr, Type};
 
 fn assert_prefix_valid(prefix: &str) {
+	assert!(!prefix.is_empty(), "prefix must be non-empty");
 	assert!(prefix.len() < 64, "prefix is longer than 63 characters");
 
-	for b in prefix.as_bytes() {
-		if cfg!(feature = "delimited") && *b == b'_' {
+	let underscore = b'_';
+	let bytes = prefix.as_bytes();
+
+	assert_ne!(*bytes.first().unwrap(), underscore, "prefix cannot start with an underscore");
+	assert_ne!(*bytes.last().unwrap(), underscore, "prefix cannot end with an underscore");
+
+	for (index, b) in prefix.as_bytes().iter().enumerate() {
+		if cfg!(feature = "delimited") && *b == underscore && index > 0 {
 			continue;
 		}
 
@@ -194,7 +201,7 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 		quote!()
 	};
 
-	let uuid_v6_impl = if cfg!(all(uuid_unstable, feature = "uuid-v6")) {
+	let uuid_v6_impl = if cfg!(feature = "uuid-v6") {
 		quote! {
 			fn new_v6(ts: ::strong_id::uuid::Timestamp, node_id: &[u8; 6]) -> Self {
 				Self(::strong_id::uuid::Uuid::new_v6(ts, node_id))
@@ -208,7 +215,7 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 		quote!()
 	};
 
-	let uuid_v7_impl = if cfg!(all(uuid_unstable, feature = "uuid-v7")) {
+	let uuid_v7_impl = if cfg!(feature = "uuid-v7") {
 		quote! {
 			fn new_v7(ts: ::strong_id::uuid::Timestamp) -> Self {
 				Self(::strong_id::uuid::Uuid::new_v7(ts))
@@ -222,7 +229,7 @@ pub fn derive_strong_id_uuid(input: proc_macro::TokenStream) -> proc_macro::Toke
 		quote!()
 	};
 
-	let uuid_v8_impl = if cfg!(all(uuid_unstable, feature = "uuid-v8")) {
+	let uuid_v8_impl = if cfg!(feature = "uuid-v8") {
 		quote! {
 			fn new_v8(buf: [u8; 16]) -> Self {
 				Self(::strong_id::uuid::Uuid::new_v8(buf))

@@ -244,24 +244,24 @@ pub trait StrongUuid {
 	#[cfg_attr(docsrs, doc(cfg(feature = "uuid-v5")))]
 	fn new_v5(namespace: &Uuid, name: &[u8]) -> Self;
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
-	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v6"))))]
+	#[cfg(feature = "uuid-v6")]
+	#[cfg_attr(docsrs, doc(cfg(all(feature = "uuid-v6"))))]
 	fn new_v6(ts: uuid::Timestamp, node_id: &[u8; 6]) -> Self;
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v6"))]
-	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v6"))))]
+	#[cfg(feature = "uuid-v6")]
+	#[cfg_attr(docsrs, doc(cfg(all(feature = "uuid-v6"))))]
 	fn now_v6(node_id: &[u8; 6]) -> Self;
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
-	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v7"))))]
+	#[cfg(feature = "uuid-v7")]
+	#[cfg_attr(docsrs, doc(cfg(all(feature = "uuid-v7"))))]
 	fn new_v7(ts: uuid::Timestamp) -> Self;
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v7"))]
-	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v7"))))]
+	#[cfg(feature = "uuid-v7")]
+	#[cfg_attr(docsrs, doc(cfg(all(feature = "uuid-v7"))))]
 	fn now_v7() -> Self;
 
-	#[cfg(all(uuid_unstable, feature = "uuid-v8"))]
-	#[cfg_attr(docsrs, doc(cfg(all(uuid_unstable, feature = "uuid-v8"))))]
+	#[cfg(feature = "uuid-v8")]
+	#[cfg_attr(docsrs, doc(cfg(all(feature = "uuid-v8"))))]
 	fn new_v8(buf: [u8; 16]) -> Self;
 }
 
@@ -280,7 +280,7 @@ macro_rules! impl_strong_uint {
 				if val.len() != encoded_len::<$t>() {
 					return Err(::strong_id::Error::InvalidLength(encoded_len::<$t>(), val.len()));
 				}
-				
+
 				let mut out = [0; ::core::mem::size_of::<$t>()];
 				::strong_id::base32::decode(val.as_bytes(), &mut out)?;
 

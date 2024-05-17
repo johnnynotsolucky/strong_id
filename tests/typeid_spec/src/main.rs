@@ -53,6 +53,7 @@ fn fetch_cases<T: Case + DeserializeOwned>() -> Vec<T> {
 
 strong_uuid!(struct NoPrefix(Uuid));
 strong_uuid!(struct Prefix(Uuid => "prefix"));
+strong_uuid!(struct PrefixUnderscore(Uuid => "pre_fix"));
 
 fn main() {
 	let valid_cases = fetch_cases::<ValidCase>();
@@ -84,7 +85,7 @@ fn main() {
 		.chain(valid_cases.into_iter().map(|case| {
 			Trial::test(format!("valid::static::{}", case.name), move || {
 				match case.prefix() {
-					Some(_prefix) => {
+					Some(prefix) if !prefix.contains('_') => {
 						let uuid = Uuid::from_str(&case.uuid).unwrap();
 						// encode
 						let encoded = Prefix::from(uuid);
@@ -93,6 +94,18 @@ fn main() {
 
 						// decode
 						let encoded = Prefix::from_str(&case.typeid).unwrap();
+						assert_eq!(encoded.to_string(), case.typeid);
+						assert_eq!(*encoded.id(), uuid);
+					}
+					Some(_) => {
+						let uuid = Uuid::from_str(&case.uuid).unwrap();
+						// encode
+						let encoded = PrefixUnderscore::from(uuid);
+						assert_eq!(encoded.to_string(), case.typeid);
+						assert_eq!(*encoded.id(), uuid);
+
+						// decode
+						let encoded = PrefixUnderscore::from_str(&case.typeid).unwrap();
 						assert_eq!(encoded.to_string(), case.typeid);
 						assert_eq!(*encoded.id(), uuid);
 					}
